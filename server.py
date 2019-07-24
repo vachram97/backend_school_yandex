@@ -2,29 +2,27 @@ from aiohttp import web
 
 
 async def post_import(request):
-    imp = await request.json()
-    print(imp)
-    return web.Response(status=405)
+    return web.Response(status=418)
 
 
 async def patch_info(request):
     print('got patch')
-    return web.Response(status=405)
+    return web.Response(status=418)
 
 
 async def get_info(request):
     print('got get info')
-    return web.Response(status=405)
+    return web.Response(status=418)
 
 
 async def get_birthdays(request):
     print('got get birth')
-    return web.Response(status=405)
+    return web.Response(status=418)
 
 
 async def get_statistics(request):
     print('got get stats')
-    return web.Response(status=405)
+    return web.Response(status=418)
 
 
 app = web.Application()
