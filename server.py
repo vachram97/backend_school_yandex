@@ -1,7 +1,11 @@
 from aiohttp import web
+import serialization
+import citizen_db
 
 
 async def post_import(request):
+    ser = serialization.Serializer()
+    print(ser.serialize_citizens(await request.text()))
     return web.Response(status=418)
 
 
@@ -28,7 +32,7 @@ async def get_statistics(request):
 app = web.Application()
 app.add_routes([web.post(r'/imports', post_import),
                 web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),
-                web.get(r'/imports/{import_id:\d+}/citizens/',get_info),
+                web.get(r'/imports/{import_id:\d+}/citizens/', get_info),
                 web.get(r'/imports/{import_id:\d+}/citizens/birthdays', get_birthdays),
                 web.get(r'/imports/{import_id:\d+}/citizens/towns/stat/percentile/age', get_statistics)
                 ])
