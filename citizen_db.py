@@ -1,5 +1,14 @@
 import MySQLdb as mysql
 import re
+from collections import defaultdict
+
+
+def to_dict(data):
+    result = dict()
+    for elem in data:
+        result[elem[0]] = elem
+    return result
+
 
 class DBconnect:
 
@@ -105,10 +114,30 @@ class CitizenDB:
             cursor.close()
         return result
 
+    def get_birthdays_info(self, import_id):
+        result = defaultdict(lambda: [])
+        with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
+                       host="localhost") as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT citizen_id, birth_date, relatives FROM import_" + str(import_id))
+            data = to_dict(cursor.fetchall())
+            cursor.close()
+
+        for elem in data:
+            gifts = defaultdict(lambda: 0)
+            for relative in data[elem][2].split(','):
+                relative_id = int(relative)
+                gifts[data[relative_id][1].month] += 1
+            for month in gifts:
+                result[str(month)].append({"citizen_id": elem, "presents": gifts[month]})
+
+        return result
+
+
 
 if __name__ == '__main__':
     data = CitizenDB("citizens")
     try:
-        print(data.get_info(60))
+        print(data.get_birthdays_info(60))
     except mysql.ProgrammingError as e:
         print(e)

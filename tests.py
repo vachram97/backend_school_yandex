@@ -48,4 +48,4 @@ data = {
     "street": "Iosif"
 }
 #print(requests.patch(url+"/1/citizens/2", json=data))
-print(requests.get(url+"/61/citizens").json())
+print(requests.get(url+"/60/citizens/birthdays").json())
