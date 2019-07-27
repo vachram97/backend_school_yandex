@@ -3,6 +3,7 @@ import serialization
 import citizen_db
 from marshmallow import ValidationError
 from MySQLdb import ProgrammingError
+import keyring
 
 MYSQL_TABLE_NOT_EXIST = '(1146'
 
@@ -63,7 +64,9 @@ async def get_statistics(request):
 
 if __name__ == "__main__":
     app = web.Application(client_max_size=1024**2*20)
-    db = citizen_db.CitizenDB("citizens")
+    user = "root"
+    passwd = keyring.get_password("system", "root")
+    db = citizen_db.CitizenDB(user, passwd, "citizens")
     app.add_routes([web.post(r'/imports', post_import),
                     web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),
                     web.get(r'/imports/{import_id:\d+}/citizens', get_info),

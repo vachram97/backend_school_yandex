@@ -42,14 +42,12 @@ class DBconnect:
 
 
 class CitizenDB:
-    credentials = {
-        "user": "root",
-        "passwd": "pass"
-    }
     db_name = None
-
-    def __init__(self, db_name):
+    credentials = dict()
+    def __init__(self, user, passwd, db_name):
         self.db_name = db_name
+        self.credentials["user"] = user
+        self.credentials["passwd"] = passwd
 
     def create_table(self, table_name):
         db = mysql.connect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
