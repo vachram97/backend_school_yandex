@@ -1,6 +1,8 @@
 import MySQLdb as mysql
 import re
 from collections import defaultdict
+from numpy import percentile
+from datetime import date
 
 
 def to_dict(data):
@@ -8,6 +10,11 @@ def to_dict(data):
     for elem in data:
         result[elem[0]] = elem
     return result
+
+
+def age(birth_date):
+    today = date.today()
+    return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
 
 
 class DBconnect:
@@ -115,7 +122,9 @@ class CitizenDB:
         return result
 
     def get_birthdays_info(self, import_id):
-        result = defaultdict(lambda: [])
+        result = dict()
+        for i in range(1, 13):
+            result[str(i)] = []
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
             cursor = db.cursor()
@@ -133,11 +142,28 @@ class CitizenDB:
 
         return result
 
+    def get_statistics(self, import_id):
+        result = []
+        ages_in_town = defaultdict(lambda: [])
+        with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
+                       host="localhost") as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT town, birth_date FROM import_" + str(import_id))
+            while True:
+                data = cursor.fetchone()
+                if not data:
+                    break
+                ages_in_town[data[0]].append(age(data[1]))
+            cursor.close()
+        for town in ages_in_town:
+            perc = percentile(ages_in_town[town], [50, 75, 99], interpolation='linear')
+            result.append({"town": town, "p50": perc[0], "p75": perc[1], "p99": perc[2]})
+        return result
 
 
 if __name__ == '__main__':
     data = CitizenDB("citizens")
     try:
-        print(data.get_birthdays_info(60))
+        print(data.get_statistics(60))
     except mysql.ProgrammingError as e:
         print(e)

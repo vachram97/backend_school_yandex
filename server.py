@@ -35,12 +35,17 @@ async def get_birthdays(request):
     except ProgrammingError as e:
         if str(e).startswith('(1146'):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    print(result)
     return web.json_response({"data": result}, status=200)
 
 
 async def get_statistics(request):
-    print('got get stats')
-    return web.Response(status=418)
+    try:
+        result = db.get_statistics(request.match_info['import_id'])
+    except ProgrammingError as e:
+        if str(e).startswith('(1146'):
+            return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    return web.json_response({"data": result}, status=200)
 
 
 if __name__ == "__main__":
