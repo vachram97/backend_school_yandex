@@ -9,7 +9,7 @@ class CitizenSchema(Schema):
     building = fields.String(required=True)
     appartement = fields.Integer(required=True)
     name = fields.String(required=True)
-    birth_date = fields.DateTime("%d.%m.%Y", required=True, validate=lambda x: x < date.today())
+    birth_date = fields.DateTime("%d.%m.%Y", required=True, validate=lambda x: x.date() < date.today())
     gender = fields.String(required=True, validate=lambda x: (x == 'male') or (x == 'female'))
     relatives = fields.List(fields.Integer, required=True)
 
@@ -25,7 +25,7 @@ class CitizenSchemaPatch(Schema):
     building = fields.String()
     appartement = fields.Integer()
     name = fields.String()
-    birth_date = fields.DateTime("%d.%m.%Y", validate=lambda x: x < date.today())
+    birth_date = fields.DateTime("%d.%m.%Y", validate=lambda x: x.date() < date.today())
     gender = fields.String(validate=lambda x: (x == 'male') or (x == 'female'))
     relatives = fields.List(fields.Integer)
 
@@ -62,7 +62,6 @@ class Serializer:
             for relative in data[citizen]["relatives"]:
                 if citizen not in data[relative]["relatives"]:
                     raise ValidationError("relatives are not consistent")
-
 
 
 if __name__ == '__main__':

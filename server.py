@@ -62,7 +62,7 @@ async def get_statistics(request):
 
 
 if __name__ == "__main__":
-    app = web.Application()
+    app = web.Application(client_max_size=1024**2*20)
     db = citizen_db.CitizenDB("citizens")
     app.add_routes([web.post(r'/imports', post_import),
                     web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),
