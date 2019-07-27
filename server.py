@@ -4,6 +4,8 @@ import citizen_db
 from marshmallow import ValidationError
 from MySQLdb import ProgrammingError
 
+MYSQL_TABLE_NOT_EXIST = '(1146'
+
 
 async def post_import(request):
     ser = serialization.Serializer()
@@ -16,15 +18,26 @@ async def post_import(request):
 
 
 async def patch_info(request):
-    print('got patch')
-    return web.Response(status=418)
+    ser = serialization.Serializer()
+    try:
+        result = db.patch_user_data(request.match_info["import_id"], request.match_info["citizen_id"],
+                                    ser.deserialize_patch_data(await request.text()))
+    except Exception:
+        print("catched")
+        raise
+    except ValidationError as e:
+        return web.json_response({"error": e.messages}, status=400)
+    except ProgrammingError as e:
+        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
+            return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    return web.json_response({"data": result}, status=200)
 
 
 async def get_info(request):
     try:
         result = db.get_info(request.match_info['import_id'])
     except ProgrammingError as e:
-        if str(e).startswith('(1146'):
+        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
     return web.json_response({"data": result}, status=200)
 
@@ -33,7 +46,7 @@ async def get_birthdays(request):
     try:
         result = db.get_birthdays_info(request.match_info['import_id'])
     except ProgrammingError as e:
-        if str(e).startswith('(1146'):
+        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
     print(result)
     return web.json_response({"data": result}, status=200)
@@ -43,7 +56,7 @@ async def get_statistics(request):
     try:
         result = db.get_statistics(request.match_info['import_id'])
     except ProgrammingError as e:
-        if str(e).startswith('(1146'):
+        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
     return web.json_response({"data": result}, status=200)
 

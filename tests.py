@@ -47,5 +47,6 @@ data = {
     "town": "Kerch",
     "street": "Iosif"
 }
-#print(requests.patch(url+"/1/citizens/2", json=data))
-print(requests.get(url+"/60/citizens/birthdays").json())
+print(requests.patch(url+"/60/citizens/2", json=data).json())
+#print(requests.get(url+"/60/citizens/birthdays").json())
+

@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from numpy import percentile
 from datetime import date
+from marshmallow import ValidationError
 
 
 def to_dict(data):
@@ -55,7 +56,7 @@ class CitizenDB:
                            host="localhost")
         db.set_character_set('utf8')
         cursor = db.cursor()
-        table_name = re.sub(r"[\s\[\]\(\)]\*,", "", table_name)  # to avoid some SQL inj
+        table_name = re.sub(r"[\s\[\]()]\*,", "", table_name)  # to avoid some SQL inj
         cursor.execute("CREATE TABLE " + table_name + """(
                         citizen_id INT NOT NULL PRIMARY KEY,
                         town VARCHAR(100),
@@ -73,7 +74,7 @@ class CitizenDB:
     def fill_import(self, table_name, citizens):
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
-            table_name = re.sub(r"[\s\[\]\(\)]\*,", "", table_name)  # to avoid some SQL inj
+            table_name = re.sub(r"[\s\[\]()]\*,", "", table_name)  # to avoid some SQL inj
             cursor = db.cursor()
             cursor.execute("CREATE TABLE " + table_name + """(
                                     citizen_id INT NOT NULL PRIMARY KEY,
@@ -159,6 +160,37 @@ class CitizenDB:
             perc = percentile(ages_in_town[town], [50, 75, 99], interpolation='linear')
             result.append({"town": town, "p50": perc[0], "p75": perc[1], "p99": perc[2]})
         return result
+
+    def patch_user_data(self, import_id, citizen_id, data):
+        keys = ("citizen_id", "town", "street", "building", "appartement", "name", "birth_date", "gender", "relatives")
+        with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
+                       host="localhost") as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT * FROM import_" + str(import_id) + " WHERE citizen_id=%s", (citizen_id,))
+            old_data = cursor.fetchone()
+            if not old_data:
+                raise ValidationError("id doesn't exist")
+            citizen_data = dict(zip(keys, old_data))
+            # if we can patch only one citizen per request, its relatives should remain the same except, maybe, himself
+            if "relatives" in data:
+                old_relatives = set([int(x) for x in old_data[8].split(',')])
+                new_relatives = set(data["relatives"])
+                simm_diff = old_relatives ^ new_relatives
+                if not (len(simm_diff) > 1) or ((len(simm_diff) == 1) and citizen_id in simm_diff):
+                    raise ValidationError("relatives data is not consistent")
+            query = "UPDATE import_" + str(import_id) + ' SET '
+            for elem in data:
+                query += elem + "='" + data[elem] + "' ,"
+                citizen_data[elem] = data[elem]
+            query = query[:-1] + " WHERE citizen_id=" + str(citizen_id)
+            cursor.execute(query)
+            cursor.close()
+
+        citizen_data["relatives"] = '[' + citizen_data["relatives"] + ']'
+        citizen_data["birth_date"] = citizen_data["birth_date"].strftime("%d.%m.%Y")
+        return citizen_data
+
+
 
 
 if __name__ == '__main__':
