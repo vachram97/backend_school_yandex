@@ -44,6 +44,7 @@ class DBconnect:
 class CitizenDB:
     db_name = None
     credentials = dict()
+
     def __init__(self, user, passwd, db_name):
         self.db_name = db_name
         self.credentials["user"] = user
@@ -54,13 +55,13 @@ class CitizenDB:
                            host="localhost")
         db.set_character_set('utf8')
         cursor = db.cursor()
-        table_name = re.sub(r"[\s\[\]()]\*,", "", table_name)  # to avoid some SQL inj
+        table_name = re.sub(r"[\s\[\]()]\*,;", "", table_name)  # to avoid some SQL inj
         cursor.execute("CREATE TABLE " + table_name + """(
-                        citizen_id INT NOT NULL PRIMARY KEY,
-                        town VARCHAR(100),
-                        street VARCHAR(100),
-                        building VARCHAR(100),
-                        appartement INT,
+                        citizen_id UNSIGNED INT NOT NULL PRIMARY KEY,
+                        town VARCHAR(100) NOT NULL,
+                        street VARCHAR(100) NOT NULL,
+                        building VARCHAR(100) NOT NULL,
+                        apartment INT NOT NULL ,
                         name VARCHAR(100),
                         birth_date DATE,
                         gender ENUM('male', 'female'),
@@ -79,7 +80,7 @@ class CitizenDB:
                                     town VARCHAR(100),
                                     street VARCHAR(100),
                                     building VARCHAR(100),
-                                    appartement INT,
+                                    apartment INT,
                                     name VARCHAR(100),
                                     birth_date DATE,
                                     gender ENUM('male', 'female'),
@@ -105,7 +106,7 @@ class CitizenDB:
 
     def get_info(self, import_id):
         result = []
-        keys = ("citizen_id", "town", "street", "building", "appartement", "name", "birth_date", "gender", "relatives")
+        keys = ("citizen_id", "town", "street", "building", "apartment", "name", "birth_date", "gender", "relatives")
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
             cursor = db.cursor()
@@ -160,7 +161,7 @@ class CitizenDB:
         return result
 
     def patch_user_data(self, import_id, citizen_id, data):
-        keys = ("citizen_id", "town", "street", "building", "appartement", "name", "birth_date", "gender", "relatives")
+        keys = ("citizen_id", "town", "street", "building", "apartment", "name", "birth_date", "gender", "relatives")
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
             cursor = db.cursor()

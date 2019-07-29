@@ -23,9 +23,6 @@ async def patch_info(request):
     try:
         result = db.patch_user_data(request.match_info["import_id"], request.match_info["citizen_id"],
                                     ser.deserialize_patch_data(await request.text()))
-    except Exception:
-        print("catched")
-        raise
     except ValidationError as e:
         return web.json_response({"error": e.messages}, status=400)
     except ProgrammingError as e:
@@ -63,9 +60,9 @@ async def get_statistics(request):
 
 
 if __name__ == "__main__":
-    app = web.Application(client_max_size=1024**2*20)
+    app = web.Application(client_max_size=1024**3)
     user = "root"
-    passwd = keyring.get_password("system", "root")
+    passwd = keyring.get_password("system", user)
     db = citizen_db.CitizenDB(user, passwd, "citizens")
     app.add_routes([web.post(r'/imports', post_import),
                     web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),
