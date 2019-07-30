@@ -4,6 +4,7 @@ from collections import defaultdict
 from numpy import percentile
 from datetime import date
 from marshmallow import ValidationError
+import json
 
 
 def to_dict(data):
@@ -41,6 +42,25 @@ class DBconnect:
             raise
 
 
+def db_insert_row(cursor, table_name, values):
+    cursor.execute("INSERT INTO " + table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", values)
+
+
+def db_create_table(cursor, table_name):
+    cursor.execute("CREATE TABLE " + table_name + """(
+                            citizen_id INT NOT NULL PRIMARY KEY,
+                            town VARCHAR(100) NOT NULL,
+                            street VARCHAR(100) NOT NULL,
+                            building VARCHAR(100) NOT NULL,
+                            apartment INT NOT NULL ,
+                            name VARCHAR(100),
+                            birth_date DATE,
+                            gender ENUM('male', 'female'),
+                            relatives TEXT
+                                        );
+                        """)
+
+
 class CitizenDB:
     db_name = None
     credentials = dict()
@@ -50,47 +70,16 @@ class CitizenDB:
         self.credentials["user"] = user
         self.credentials["passwd"] = passwd
 
-    def create_table(self, table_name):
-        db = mysql.connect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
-                           host="localhost")
-        db.set_character_set('utf8')
-        cursor = db.cursor()
-        table_name = re.sub(r"[\s\[\]()]\*,;", "", table_name)  # to avoid some SQL inj
-        cursor.execute("CREATE TABLE " + table_name + """(
-                        citizen_id UNSIGNED INT NOT NULL PRIMARY KEY,
-                        town VARCHAR(100) NOT NULL,
-                        street VARCHAR(100) NOT NULL,
-                        building VARCHAR(100) NOT NULL,
-                        apartment INT NOT NULL ,
-                        name VARCHAR(100),
-                        birth_date DATE,
-                        gender ENUM('male', 'female'),
-                        relatives VARCHAR(100)
-                        );
-        """)
-        db.close()
-
     def fill_import(self, table_name, citizens):
+
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
-            table_name = re.sub(r"[\s\[\]()]\*,", "", table_name)  # to avoid some SQL inj
+            table_name = re.sub(r"[\s\[\]()]\*,;", "", table_name)  # to avoid some SQL inj
             cursor = db.cursor()
-            cursor.execute("CREATE TABLE " + table_name + """(
-                                    citizen_id INT NOT NULL PRIMARY KEY,
-                                    town VARCHAR(100),
-                                    street VARCHAR(100),
-                                    building VARCHAR(100),
-                                    apartment INT,
-                                    name VARCHAR(100),
-                                    birth_date DATE,
-                                    gender ENUM('male', 'female'),
-                                    relatives VARCHAR(100)
-                                    );
-                    """)
+            db_create_table(cursor, table_name)
             for citizen in citizens:
-                citizens[citizen]["relatives"] = ','.join([str(x) for x in citizens[citizen]["relatives"]])
-                cursor.execute("INSERT INTO " + table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                               citizens[citizen].values())
+                citizens[citizen]["relatives"] = json.dumps(citizens[citizen]["relatives"])
+                db_insert_row(cursor, table_name, citizens[citizen].values())
             cursor.close()
 
     def get_next_id(self):
@@ -107,16 +96,17 @@ class CitizenDB:
     def get_info(self, import_id):
         result = []
         keys = ("citizen_id", "town", "street", "building", "apartment", "name", "birth_date", "gender", "relatives")
+        table_name = "import_" + str(import_id)
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
             cursor = db.cursor()
-            cursor.execute("SELECT * FROM import_" + str(import_id))
+            cursor.execute("SELECT * FROM " + table_name)
             while True:
                 data = cursor.fetchone()
                 if not data:
                     break
                 result.append(dict(zip(keys, data)))
-                result[-1]["relatives"] = '[' + result[-1]["relatives"] + ']'
+                result[-1]["relatives"] = json.loads(result[-1]["relatives"])
                 result[-1]["birth_date"] = result[-1]["birth_date"].strftime("%d.%m.%Y")
             cursor.close()
         return result
@@ -134,9 +124,8 @@ class CitizenDB:
 
         for elem in data:
             gifts = defaultdict(lambda: 0)
-            for relative in data[elem][2].split(','):
-                relative_id = int(relative)
-                gifts[data[relative_id][1].month] += 1
+            for relative in json.loads(data[elem][2]):
+                gifts[data[relative][1].month] += 1
             for month in gifts:
                 result[str(month)].append({"citizen_id": elem, "presents": gifts[month]})
 
@@ -170,22 +159,30 @@ class CitizenDB:
             if not old_data:
                 raise ValidationError("id doesn't exist")
             citizen_data = dict(zip(keys, old_data))
-            # if we can patch only one citizen per request, its relatives should remain the same except, maybe, himself
-            if "relatives" in data:
-                old_relatives = set([int(x) for x in old_data[8].split(',')])
-                new_relatives = set(data["relatives"])
-                simm_diff = old_relatives ^ new_relatives
-                if not (len(simm_diff) > 1) or ((len(simm_diff) == 1) and citizen_id in simm_diff):
-                    raise ValidationError("relatives data is not consistent")
             query = "UPDATE import_" + str(import_id) + ' SET '
             for elem in data:
                 query += elem + "='" + data[elem] + "' ,"
                 citizen_data[elem] = data[elem]
             query = query[:-1] + " WHERE citizen_id=" + str(citizen_id)
             cursor.execute(query)
+            if "relatives" in data:
+                old_relatives = set(json.loads(old_data[8]))
+                new_relatives = set(data["relatives"])
+                for elem in old_relatives - new_relatives:
+                    cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
+                    old_list = json.loads(cursor.fetchone()[0])
+                    old_list.remove(data["citizen_id"])
+                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(old_list) + "WHERE citizen_id=%s", (citizen_id,))
+
+                for elem in new_relatives - old_relatives:
+                    cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
+                    old_list = json.loads(cursor.fetchone()[0])
+                    old_list.append(data["citizen_id"])
+                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(
+                        old_list) + "WHERE citizen_id=%s", (citizen_id,))
+
             cursor.close()
 
-        citizen_data["relatives"] = '[' + citizen_data["relatives"] + ']'
         citizen_data["birth_date"] = citizen_data["birth_date"].strftime("%d.%m.%Y")
         return citizen_data
 
