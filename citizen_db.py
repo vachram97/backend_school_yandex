@@ -161,7 +161,8 @@ class CitizenDB:
             citizen_data = dict(zip(keys, old_data))
             query = "UPDATE import_" + str(import_id) + ' SET '
             for elem in data:
-                query += elem + "='" + data[elem] + "' ,"
+                print(elem, data[elem])
+                query += elem + "='" + str(data[elem]) + "' ,"
                 citizen_data[elem] = data[elem]
             query = query[:-1] + " WHERE citizen_id=" + str(citizen_id)
             cursor.execute(query)
@@ -182,7 +183,7 @@ class CitizenDB:
                         old_list) + "WHERE citizen_id=%s", (citizen_id,))
 
             cursor.close()
-
+        citizen_data["relatives"] = json.loads(citizen_data["relatives"])
         citizen_data["birth_date"] = citizen_data["birth_date"].strftime("%d.%m.%Y")
         return citizen_data
 

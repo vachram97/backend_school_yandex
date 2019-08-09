@@ -4,37 +4,7 @@ import pytest
 import mimesis
 from collections import defaultdict
 import numpy as np
-
-
-@pytest.fixture(scope='class')
-def host_post():
-    return "http://0.0.0.0:8080/imports"
-
-@pytest.fixture(scope='module')
-def host():
-    return "http://0.0.0.0:8080"
-
-
-def birthdays_answer(data):
-    ans = dict()
-    for i in range(12):
-        ans[str(i+1)] = []
-    for i in range(len(data)):
-        gifts = defaultdict(lambda: 0)
-        for relative in data[i]["relatives"]:
-            gifts[datetime.datetime.strptime(data[relative-1]["birth_date"], "%d.%m.%Y").month]+=1
-        for month in gifts:
-            ans[str(month)].append({"citizen_id": i+1, "presents": gifts[month]})
-    return ans
-
-
-def age(birth_date):
-    today = datetime.date.today()
-    return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-
-
-def stats_answer(data):
-    raise NotImplementedError
+from jsondiff import diff
 
 
 def good_import_generator(n_citizens=20, n_relations=30):
@@ -61,7 +31,7 @@ def good_import_generator(n_citizens=20, n_relations=30):
             "relatives": []})
     relations = set()
     for i in range(n_relations):
-        relation = (number_generator.between(1,n_citizens), number_generator.between(1,n_citizens))
+        relation = (number_generator.between(1, n_citizens), number_generator.between(1, n_citizens))
         while relation in relations:
             relation = (number_generator.between(1, n_citizens), number_generator.between(1, n_citizens))
         relations.add(relation)
@@ -70,8 +40,11 @@ def good_import_generator(n_citizens=20, n_relations=30):
     return data
 
 
+host = "http://0.0.0.0:8080"
+
+
 @pytest.fixture(scope='class')
-def good_import(host):
+def good_import():
     data = good_import_generator()
     url = host + "/imports"
     response = requests.post(url, json=data)
@@ -80,60 +53,167 @@ def good_import(host):
 
 class TestPost:
 
-    def test_post(self, host_post):
-        data = good_import_generator()
-        assert requests.post(host_post, json=data).status_code == 201
+    url = host + "/imports"
 
-    def test_post_10000(self, host_post):
+    def test_post(self):
+        data = good_import_generator()
+        assert requests.post(self.url, json=data).status_code == 201
+
+    @pytest.mark.skip
+    def test_post_10000(self):
         data = good_import_generator(10000, 100000)
         time = datetime.datetime.now()
-        assert requests.post(host_post, json=data).status_code == 201
+        assert requests.post(self.url, json=data).status_code == 201
         assert datetime.datetime.now() - time < datetime.timedelta(seconds=10)
 
-    def test_post_wrong_id(self, host_post):
+    def test_post_wrong_id(self):
         data = good_import_generator()
         data[10]['citizen_id'] = 12
-        assert requests.post(host_post, json=data).status_code == 400
+        assert requests.post(self.url, json=data).status_code == 400
+
+    def test_post_wrong_apartment(self):
+        data = good_import_generator()
+        data[10]['apartment'] = 'my_apartment'
+        assert requests.post(self.url, json=data).status_code == 400
+
+    def test_post_wrong_relatives(self):
+        data = good_import_generator()
+        data[10]['relatives'].append(1)
+        assert requests.post(self.url, json=data).status_code == 400
+
+    def test_post_with_get(self):
+        response = requests.get(self.url)
+        assert response.status_code == 405
+
+    def test_post_with_slash(self):
+        data = good_import_generator()
+        response = requests.post(self.url + "/", json=data)
+        assert response.status_code == 404 or response.status_code == 201
 
 
 class TestGet:
 
-    def test_get(self, host, good_import):
+    url = host + "/imports/{}/citizens"
+
+    def test_get(self, good_import):
         import_id = good_import["import_id"]
-        url = host + "/imports/" + str(import_id) + "/citizens"
+        url = self.url.format(import_id)
         response = requests.get(url)
         assert response.status_code == 200
         assert response.json()["data"] == good_import["data"]
 
-    def test_get_wrong_id(self, host, good_import):
+    def test_get_wrong_id(self, good_import):
         import_id = good_import["import_id"]
-        url = host + "/imports/" + str(import_id + 10000) + "/citizens"
+        url = self.url.format(import_id+10000)
         response = requests.get(url)
         assert response.status_code == 400
 
 
 class TestGetBirthdays:
 
-    def test_birthdays(self, host, good_import):
+    url = host + "/imports/{}/citizens/birthdays"
+
+    def birthdays_answer(self, data):
+        ans = dict()
+        for i in range(12):
+            ans[str(i + 1)] = []
+        for i in range(len(data)):
+            gifts = defaultdict(lambda: 0)
+            for relative in data[i]["relatives"]:
+                gifts[datetime.datetime.strptime(data[relative - 1]["birth_date"], "%d.%m.%Y").month] += 1
+            for month in gifts:
+                ans[str(month)].append({"citizen_id": i + 1, "presents": gifts[month]})
+        return ans
+
+    def test_birthdays(self, good_import):
         import_id = good_import["import_id"]
-        url = host + "/imports/" + str(import_id) + "/citizens/birthdays"
+        url = self.url.format(import_id)
         response = requests.get(url)
-        answer = birthdays_answer(good_import["data"])
+        answer = self.birthdays_answer(good_import["data"])
         assert response.status_code == 200
         assert response.json()["data"] == answer
 
-    def test_birthdays_wrong_id(self, host, good_import):
+    def test_birthdays_wrong_id(self, good_import):
         import_id = good_import["import_id"]
-        url = host + "/imports/" + str(import_id+1000) + "/citizens/birthdays"
+        url = self.url.format(import_id + 1000)
         response = requests.get(url)
         assert response.status_code == 400
 
 
+class TestGetStatistics:
+
+    url = host + "/imports/{}/citizens/towns/stat/percentile/age"
+
+    def stats_answer(self, data):
+        ages_by_town = defaultdict(lambda: [])
+        ans = []
+        for citizen in data:
+            ages_by_town[citizen["town"]].append(self.age(citizen["birth_date"]))
+
+        for town in ages_by_town:
+            stats = np.percentile(ages_by_town[town], [50, 75, 99], interpolation='linear')
+            ans.append({"town": town, "p50": stats[0], "p75": stats[1], "p99": stats[2]})
+
+        return ans
+
+    def age(self, birth_date):
+        birth_date = datetime.datetime.strptime(birth_date, "%d.%m.%Y")
+        today = datetime.date.today()
+        return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+
+    def test_statistics(self, good_import):
+        import_id = good_import["import_id"]
+        url = self.url.format(import_id)
+        response = requests.get(url)
+        answer = self.stats_answer(good_import["data"])
+        assert response.status_code == 200
+        assert response.json()["data"] == answer
+
+    def test_statistics_wrong_id(self, good_import):
+        import_id = good_import["import_id"]
+        url = self.url.format(import_id + 1000)
+        response = requests.get(url)
+        assert response.status_code == 400
 
 
-def a_test_statistics(host, good_import):
-    import_id = good_import["import_id"]
-    url = host + "/imports/" + str(import_id) + "/citizens/towns/stat/percentile/age"
-    response = requests.get(url)
-    answer = stats_answer(good_import["data"])
-    assert response.json()["data"] == answer
+class TestPatchData:
+
+    url = host + "/imports/{}/citizens/{}"
+
+    def update(self, data, new_data, citizen_id):
+
+        for field in new_data:
+            if field != 'relatives':
+                data[citizen_id-1][field] = new_data[field]
+            else:
+                for relative in data[citizen_id-1]["relatives"]:
+                    data[relative]["relatives"].remove(citizen_id)
+                for new_relative in new_data["relatives"]:
+                    data[new_relative]["relatives"].append(citizen_id)
+                data[citizen_id-1]["relatives"] = new_data["relatives"]
+
+        return data
+
+    test_data = [(1, {"town": "Monreal", "apartment": 34}),
+                 (2, {"town": "Monreal", "building": "1384"}),
+                 (3, {"relatives": [1, 2, 4, 5, 6, 7]})
+                 ]
+
+
+    @pytest.mark.parametrize("citizen_id, new_data", test_data)
+    def test_patch(self, good_import, citizen_id, new_data):
+        import_id = good_import["import_id"]
+
+        url = self.url.format(import_id, citizen_id)
+        updated_data = self.update(good_import["data"], new_data, citizen_id)
+        response = requests.patch(url, json=new_data)
+        assert response.status_code == 200
+        assert updated_data[citizen_id-1] == response.json()["data"]
+
+
+
+
+def test_wrong_path():
+    response = requests.get(host)
+    assert response.status_code == 404
+

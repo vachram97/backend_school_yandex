@@ -46,7 +46,6 @@ async def get_birthdays(request):
     except ProgrammingError as e:
         if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
-    print(result)
     return web.json_response({"data": result}, status=200)
 
 
