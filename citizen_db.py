@@ -151,6 +151,8 @@ class CitizenDB:
 
     def patch_user_data(self, import_id, citizen_id, data):
         keys = ("citizen_id", "town", "street", "building", "apartment", "name", "birth_date", "gender", "relatives")
+        import_id = int(import_id)
+        citizen_id = int(citizen_id)
         with DBconnect(db=self.db_name, user=self.credentials["user"], passwd=self.credentials["passwd"],
                        host="localhost") as db:
             cursor = db.cursor()
@@ -161,7 +163,6 @@ class CitizenDB:
             citizen_data = dict(zip(keys, old_data))
             query = "UPDATE import_" + str(import_id) + ' SET '
             for elem in data:
-                print(elem, data[elem])
                 query += elem + "='" + str(data[elem]) + "' ,"
                 citizen_data[elem] = data[elem]
             query = query[:-1] + " WHERE citizen_id=" + str(citizen_id)
@@ -172,15 +173,17 @@ class CitizenDB:
                 for elem in old_relatives - new_relatives:
                     cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
                     old_list = json.loads(cursor.fetchone()[0])
-                    old_list.remove(data["citizen_id"])
-                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(old_list) + "WHERE citizen_id=%s", (citizen_id,))
+                    old_list.remove(citizen_id)
+
+                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(
+                        old_list) + "WHERE citizen_id=%s", (elem,))
 
                 for elem in new_relatives - old_relatives:
                     cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
                     old_list = json.loads(cursor.fetchone()[0])
-                    old_list.append(data["citizen_id"])
+                    old_list.append(citizen_id)
                     cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(
-                        old_list) + "WHERE citizen_id=%s", (citizen_id,))
+                        old_list) + " WHERE citizen_id=%s", (elem,))
 
             cursor.close()
         citizen_data["relatives"] = json.loads(citizen_data["relatives"])

@@ -28,6 +28,10 @@ async def patch_info(request):
     except ProgrammingError as e:
         if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
             return web.json_response({"error": "import_id doesn't exist"}, status=400)
+        else:
+            raise
+    except Exception:
+        return web.json_response({"error": "import_id doesn't exist"}, status=418)
     return web.json_response({"data": result}, status=200)
 
 

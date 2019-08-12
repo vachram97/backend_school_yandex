@@ -187,18 +187,17 @@ class TestPatchData:
                 data[citizen_id-1][field] = new_data[field]
             else:
                 for relative in data[citizen_id-1]["relatives"]:
-                    data[relative]["relatives"].remove(citizen_id)
+                    data[relative-1]["relatives"].remove(citizen_id)
                 for new_relative in new_data["relatives"]:
-                    data[new_relative]["relatives"].append(citizen_id)
+                    data[new_relative-1]["relatives"].append(citizen_id)
                 data[citizen_id-1]["relatives"] = new_data["relatives"]
 
         return data
 
-    test_data = [(1, {"town": "Monreal", "apartment": 34}),
-                 (2, {"town": "Monreal", "building": "1384"}),
+    test_data = [#(1, {"town": "Monreal", "apartment": 34}),
+                 #(2, {"town": "Monreal", "building": "1384"}),
                  (3, {"relatives": [1, 2, 4, 5, 6, 7]})
                  ]
-
 
     @pytest.mark.parametrize("citizen_id, new_data", test_data)
     def test_patch(self, good_import, citizen_id, new_data):
@@ -209,8 +208,9 @@ class TestPatchData:
         response = requests.patch(url, json=new_data)
         assert response.status_code == 200
         assert updated_data[citizen_id-1] == response.json()["data"]
-
-
+        response = requests.get(host + "/imports/{}/citizens".format(import_id))
+        assert response.status_code == 200
+        assert updated_data == response.json()["data"]
 
 
 def test_wrong_path():
