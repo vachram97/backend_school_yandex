@@ -46,6 +46,9 @@ class Serializer:
     def deserialize_patch_data(self, data):
         schema = CitizenSchemaPatch()
         result = schema.loads(data)
+        if "relatives" in result:
+            if len(set(result["relatives"])) != len(result["relatives"]):
+                raise ValidationError("Error in relatives")
         return result
 
     def list_to_dict(self, data):

@@ -173,20 +173,21 @@ class CitizenDB:
                 for elem in old_relatives - new_relatives:
                     cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
                     old_list = json.loads(cursor.fetchone()[0])
+                    #print("[*] Deleting {} from {} relatives: {}".format(citizen_id, elem, old_list))
                     old_list.remove(citizen_id)
 
-                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(
-                        old_list) + "WHERE citizen_id=%s", (elem,))
+                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives='" + json.dumps(
+                        old_list) + "' WHERE citizen_id=%s", (elem,))
 
                 for elem in new_relatives - old_relatives:
                     cursor.execute("SELECT relatives FROM import_" + str(import_id) + " WHERE citizen_id=%s", (elem,))
                     old_list = json.loads(cursor.fetchone()[0])
                     old_list.append(citizen_id)
-                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives=" + json.dumps(
-                        old_list) + " WHERE citizen_id=%s", (elem,))
-
+                    cursor.execute("UPDATE import_" + str(import_id) + " SET relatives='" + json.dumps(
+                        old_list) + "' WHERE citizen_id=%s", (elem,))
+            else:
+                citizen_data["relatives"] = json.loads(citizen_data["relatives"])
             cursor.close()
-        citizen_data["relatives"] = json.loads(citizen_data["relatives"])
         citizen_data["birth_date"] = citizen_data["birth_date"].strftime("%d.%m.%Y")
         return citizen_data
 
