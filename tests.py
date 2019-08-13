@@ -249,7 +249,8 @@ class TestPatchData:
                        (6, {"street": {"name": "hello"}}),
                        (7, {"gender": "not_male"}),
                        (7, {"gender": "not_female"}),
-                       (8, {"birth_date": "2010.01.01"})
+                       (8, {"birth_date": "2010.01.01"}),
+                       (9, {"birth_date": "31.02.2019"})
                        ]
 
     @pytest.mark.parametrize("citizen_id, new_data", test_wrong_data)

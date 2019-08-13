@@ -47,6 +47,7 @@ class Serializer:
         schema = CitizenSchemaPatch()
         result = schema.loads(data)
         if "relatives" in result:
+            # check for duplicates
             if len(set(result["relatives"])) != len(result["relatives"]):
                 raise ValidationError("Error in relatives")
         return result
