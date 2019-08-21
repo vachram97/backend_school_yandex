@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, ValidationError, RAISE, post_load
 from datetime import date
+import json
 
 
 class CitizenSchema(Schema):
@@ -39,7 +40,12 @@ class Serializer:
 
     def deserialize_citizens(self, citizens):
         schema = CitizenSchema(many=True)
-        result = self.list_to_dict(schema.loads(citizens))
+        print(json.loads(citizens))
+        try:
+            data = json.loads(citizens)["citizens"]
+        except (json.JSONDecodeError, TypeError):
+            raise ValidationError("JSON corrupted")
+        result = self.list_to_dict(schema.load(data))
         self._validate_relatives(result)
         return result
 

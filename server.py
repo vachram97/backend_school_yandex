@@ -2,17 +2,14 @@ from aiohttp import web
 import serialization
 import citizen_db
 from marshmallow import ValidationError
-from MySQLdb import ProgrammingError
 import keyring
-
-MYSQL_TABLE_NOT_EXIST = '(1146'
 
 
 async def post_import(request):
     ser = serialization.Serializer()
     try:
         import_id = db.get_next_id()
-        db.fill_import("import_" + str(import_id), ser.deserialize_citizens(await request.text()))
+        db.fill_import(import_id, ser.deserialize_citizens(await request.text()))
     except ValidationError as e:
         return web.json_response({"error": e.messages}, status=400)
     return web.json_response({"data": {"import_id": import_id}}, status=201)
@@ -25,40 +22,30 @@ async def patch_info(request):
                                     ser.deserialize_patch_data(await request.text()))
     except ValidationError as e:
         return web.json_response({"error": e.messages}, status=400)
-    except ProgrammingError as e:
-        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
-            return web.json_response({"error": "import_id doesn't exist"}, status=400)
-        else:
-            print(e)
-            raise
-            return web.json_response({"error": "import_id doesn't exist"}, status=418)
     return web.json_response({"data": result}, status=200)
 
 
 async def get_info(request):
     try:
         result = db.get_info(request.match_info['import_id'])
-    except ProgrammingError as e:
-        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
-            return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    except ValidationError as e:
+        return web.json_response({"error": e.messages}, status=400)
     return web.json_response({"data": result}, status=200)
 
 
 async def get_birthdays(request):
     try:
         result = db.get_birthdays_info(request.match_info['import_id'])
-    except ProgrammingError as e:
-        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
-            return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    except ValidationError as e:
+        return web.json_response({"error": e.messages}, status=400)
     return web.json_response({"data": result}, status=200)
 
 
 async def get_statistics(request):
     try:
         result = db.get_statistics(request.match_info['import_id'])
-    except ProgrammingError as e:
-        if str(e).startswith(MYSQL_TABLE_NOT_EXIST):
-            return web.json_response({"error": "import_id doesn't exist"}, status=400)
+    except ValidationError as e:
+        return web.json_response({"error": e.messages}, status=400)
     return web.json_response({"data": result}, status=200)
 
 
