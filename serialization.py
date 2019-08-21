@@ -40,7 +40,6 @@ class Serializer:
 
     def deserialize_citizens(self, citizens):
         schema = CitizenSchema(many=True)
-        print(json.loads(citizens))
         try:
             data = json.loads(citizens)["citizens"]
         except (json.JSONDecodeError, TypeError):
