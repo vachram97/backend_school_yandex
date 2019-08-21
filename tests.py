@@ -4,7 +4,6 @@ import pytest
 import mimesis
 from collections import defaultdict
 import numpy as np
-from jsondiff import diff
 import json
 
 

@@ -2,7 +2,7 @@ from aiohttp import web
 import serialization
 import citizen_db
 from marshmallow import ValidationError
-import keyring
+
 
 
 async def post_import(request):
@@ -51,8 +51,9 @@ async def get_statistics(request):
 
 if __name__ == "__main__":
     app = web.Application(client_max_size=1024**3)
-    user = "root"
-    passwd = keyring.get_password("system", user)
+    user = "citizen_app"
+    #passwd = keyring.get_password("system", user)
+    passwd = "pass"
     db = citizen_db.CitizenDB(user, passwd, "citizens")
     app.add_routes([web.post(r'/imports', post_import),
                     web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),

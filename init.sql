@@ -19,3 +19,5 @@ CREATE TABLE import (
     relatives TEXT NOT NULL,
     CONSTRAINT import_citizen_id PRIMARY KEY (import_id, citizen_id)
 ) CHARACTER SET utf8;
+
+GRANT ALL PRIVILEGES ON citizens.* TO 'citizen_app'@'localhost' IDENTIFIED BY 'pass';
