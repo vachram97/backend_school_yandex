@@ -135,7 +135,7 @@ class CitizenDB:
             cursor.close()
         for town in ages_in_town:
             perc = percentile(ages_in_town[town], [50, 75, 99], interpolation='linear')
-            result.append({"town": town, "p50": perc[0], "p75": perc[1], "p99": perc[2]})
+            result.append({"town": town, "p50": round(perc[0], 2), "p75": round(perc[1], 2), "p99": round(perc[2], 2)})
         return result
 
     def patch_user_data(self, import_id, citizen_id, data):

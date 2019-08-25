@@ -151,7 +151,7 @@ class TestGetStatistics:
 
         for town in ages_by_town:
             stats = np.percentile(ages_by_town[town], [50, 75, 99], interpolation='linear')
-            ans.append({"town": town, "p50": stats[0], "p75": stats[1], "p99": stats[2]})
+            ans.append({"town": town, "p50": round(stats[0], 2), "p75": round(stats[1], 2), "p99": round(stats[2], 2)})
 
         return ans
 
