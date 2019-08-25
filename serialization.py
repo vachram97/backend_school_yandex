@@ -4,11 +4,11 @@ import json
 
 
 class CitizenSchema(Schema):
-    citizen_id = fields.Integer(required=True)
+    citizen_id = fields.Integer(required=True, validate=lambda x: x >= 0)
     town = fields.String(required=True)
     street = fields.String(required=True)
     building = fields.String(required=True)
-    apartment = fields.Integer(required=True)
+    apartment = fields.Integer(required=True, validate=lambda x: x >= 0)
     name = fields.String(required=True)
     birth_date = fields.DateTime("%d.%m.%Y", required=True, validate=lambda x: x.date() < date.today())
     gender = fields.String(required=True, validate=lambda x: (x == 'male') or (x == 'female'))
@@ -24,7 +24,7 @@ class CitizenSchemaPatch(Schema):
     town = fields.String()
     street = fields.String()
     building = fields.String()
-    apartment = fields.Integer()
+    apartment = fields.Integer(validate=lambda x: x >= 0)
     name = fields.String()
     birth_date = fields.DateTime("%d.%m.%Y", validate=lambda x: x.date() < date.today())
     gender = fields.String(validate=lambda x: (x == 'male') or (x == 'female'))
