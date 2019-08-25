@@ -1,0 +1,14 @@
+[Unit]
+Description=citizen API server
+After=mysqld.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=entrant
+ExecStart=/usr/bin/env python3 /home/entrant/backend_school_yandex/server.py
+
+[Install]
+WantedBy=multi-user.target

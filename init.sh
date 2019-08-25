@@ -6,4 +6,7 @@ mysql < init.sql
 
 pip3 install -r requirements.txt
 
-python3 -m keyring
+cp citizens.service /etc/systemd/system/
+
+systemctl start citizens
+systemctl enable citizens
