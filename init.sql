@@ -20,4 +20,6 @@ CREATE TABLE import (
     CONSTRAINT import_citizen_id PRIMARY KEY (import_id, citizen_id)
 ) CHARACTER SET utf8;
 
-GRANT ALL PRIVILEGES ON citizens.* TO 'citizen_app'@'localhost' IDENTIFIED BY 'pass';
+CREATE USER 'citizen_app'@'localhost' IDENTIFIED BY 'pass';
+GRANT ALL PRIVILEGES ON citizens.* TO 'citizen_app'@'localhost';
+
