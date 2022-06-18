@@ -1,0 +1,4 @@
+- proper storage of login and password
+- change pure SQL to SQLAlchemy
+- dockerize it
+- translate task to english
