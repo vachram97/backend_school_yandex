@@ -1,4 +1,4 @@
 - proper storage of login and password
-- change pure SQL to SQLAlchemy
+- change storaging relatives (by creating extra table with them and using SQL for tasks)
 - dockerize it
 - translate task to english
