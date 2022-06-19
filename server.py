@@ -54,7 +54,7 @@ if __name__ == "__main__":
     user = "citizen_app"
     #passwd = keyring.get_password("system", user)
     passwd = "pass"
-    db = citizen_db.CitizenDB(user, passwd, "citizens")
+    db = citizen_db.CitizenDB("mysql://citizen_app:pass@localhost/citizens")
     app.add_routes([web.post(r'/imports', post_import),
                     web.patch(r'/imports/{import_id:\d+}/citizens/{citizen_id:\d+}', patch_info),
                     web.get(r'/imports/{import_id:\d+}/citizens', get_info),
