@@ -74,5 +74,4 @@ class Serializer:
 
 
 if __name__ == '__main__':
-    serializer = Serializer()
-    serializer.deserialize_citizens()
+    pass

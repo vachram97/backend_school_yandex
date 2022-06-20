@@ -7,10 +7,11 @@ from marshmallow import ValidationError
 import json
 
 
-from sqlalchemy import Column,Integer,String,Date,Enum,PrimaryKeyConstraint,Text,select,update
+from sqlalchemy import Column, Integer, String, Date, Enum, PrimaryKeyConstraint, Text, select, update
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, Session
 import enum
+
 
 class Gender(enum.Enum):
     male = 'male'
@@ -19,10 +20,13 @@ class Gender(enum.Enum):
 
 Base = declarative_base()
 
+
 class Citizen(Base):
 
     __tablename__ = 'import'
-    __table_args__ = (PrimaryKeyConstraint('import_id','citizen_id',name='import_citizen_id'),)
+    __table_args__ = (
+        PrimaryKeyConstraint('import_id','citizen_id',name='import_citizen_id'),
+        )
     import_id = Column(Integer)
     citizen_id = Column(Integer)
     town = Column(String(100))
@@ -34,19 +38,19 @@ class Citizen(Base):
     gender = Column(Enum(Gender))
     relatives = Column(Text)
 
+
 class ImportId(Base):
 
     __tablename__ = 'imports'
-    id = Column(Integer,primary_key=True)
+    id = Column(Integer, primary_key=True)
 
 
 class CitizenDB:
 
-    def __init__(self,engine) -> None:
+    def __init__(self, engine) -> None:
         self.engine = create_engine(engine, echo=True, future=True)
 
-    
-    def _2dict(self,row):
+    def _2dict(self, row):
         keys = ("citizen_id", "town", "street", "building", "apartment", "name", "birth_date", "gender", "relatives")
         row = dict(row)['Citizen'].__dict__
         row["relatives"] = json.loads(row["relatives"])
@@ -54,11 +58,9 @@ class CitizenDB:
         row["gender"] = row["gender"].value
         return {key:row[key] for key in keys}
 
-
     def _age(self,birth_date):
         today = date.today()
         return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-
 
     def fill_import(self, import_id, citizens):
         with Session(self.engine) as session:
@@ -71,7 +73,6 @@ class CitizenDB:
                 ))
             session.commit()
             
-
     def get_next_id(self):
         with Session(self.engine) as session:
             id = session.query(ImportId).one()
@@ -81,7 +82,6 @@ class CitizenDB:
 
         return current_id
 
-    
     def get_info(self, import_id):
         
         result = []
@@ -97,14 +97,13 @@ class CitizenDB:
                      
         return result
 
-
     def get_birthdays_info(self, import_id):
         result = dict()
         data = dict()
         for i in range(1,13):
             result[str(i)] = []
         with Session(self.engine) as session:
-            stmt = select(Citizen.citizen_id,Citizen.birth_date,Citizen.relatives).where(Citizen.import_id == import_id)
+            stmt = select(Citizen.citizen_id, Citizen.birth_date, Citizen.relatives).where(Citizen.import_id == import_id)
             for row in session.execute(stmt):
                 data[row.citizen_id] = (row.birth_date.month, row.relatives)
 
@@ -119,8 +118,6 @@ class CitizenDB:
                 result[str(month)].append({"citizen_id": elem, "presents": gifts[month]})
 
         return result
-
-
 
     def get_statistics(self, import_id):
         result = []
@@ -166,16 +163,10 @@ class CitizenDB:
                     new_value = json.dumps(old_list)
                     session.execute(update(Citizen).where(Citizen.import_id == import_id).where(Citizen.citizen_id == elem).values(relatives=new_value))
                 
-                
-
             stmt = select(Citizen).where(Citizen.import_id == import_id).where(Citizen.citizen_id == citizen_id)
             result = self._2dict(session.execute(stmt).one())
             session.commit()
         return result
-
-            
-
-
 
 
 if __name__ == '__main__':

@@ -41,9 +41,7 @@ def good_import_generator(n_citizens=20, n_relations=30):
             data[relation[1] - 1]["relatives"].append(relation[0])
     return data
 
-
 host = "http://0.0.0.0:8080"
-
 
 @pytest.fixture(scope='class')
 def good_import():
@@ -60,7 +58,6 @@ class TestPost:
         data = {"citizens": good_import_generator()}
         assert requests.post(self.url, json=data).status_code == 201
 
-    #@pytest.mark.skip
     def test_post_10000(self):
         data = {"citizens": good_import_generator(10000, 100000)}
         time = datetime.datetime.now()
@@ -81,7 +78,6 @@ class TestPost:
         data = {"citizens": good_import_generator()}
         data["citizens"][10]['relatives'].append(1)
         assert requests.post(self.url, json=data).status_code == 400
-
 
     def test_post_with_get(self):
         response = requests.get(self.url)
