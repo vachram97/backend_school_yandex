@@ -12,8 +12,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, Session
 import enum
 
-from citizen_db_old import to_dict
-
 class Gender(enum.Enum):
     male = 'male'
     female = 'female'
@@ -182,9 +180,6 @@ class CitizenDB:
 
 if __name__ == '__main__':
 
-    engine = create_engine("mysql://citizen_app:pass@localhost/citizens", echo=True, future=True)
-    Base.metadata.create_all(engine)
-
-    db = CitizenDB()
+    pass
 
 
